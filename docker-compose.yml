@@ -1,6 +1,21 @@
 version: '3.9'
 
 services:
+  haproxy:
+    image: haproxy:2.4
+    container_name: galera-haproxy
+    ports:
+      - "0.0.0.0:3306:3306"  # Main MySQL port through HAProxy
+      - "0.0.0.0:8080:8080"  # HAProxy stats page
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - galera-node1
+      - galera-node2
+      - galera-node3
+    networks:
+      - galera-network
+
   galera-node1:
     image: mariadb:10.5
     container_name: galera-node1
@@ -10,11 +25,13 @@ services:
       - NODE_NAME=node1
       - MYSQL_DATABASE=testdb
     ports:
-      - "3307:3306"
+      - "3307:3306"  # Keep direct access for debugging
     command: --wsrep-new-cluster
     volumes:
       - ./node1/data:/var/lib/mysql
       - ./node1/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - galera-network
 
   galera-node2:
     image: mariadb:10.5
@@ -23,11 +40,15 @@ services:
       - MYSQL_ROOT_PASSWORD=root
       - CLUSTER_NAME=galera_cluster
       - NODE_NAME=node2
+    ports:
+      - "3308:3306"  # Keep direct access for debugging
     depends_on:
       - galera-node1
     volumes:
       - ./node2/data:/var/lib/mysql
       - ./node2/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - galera-network
 
   galera-node3:
     image: mariadb:10.5
@@ -36,11 +57,15 @@ services:
       - MYSQL_ROOT_PASSWORD=root
       - CLUSTER_NAME=galera_cluster
       - NODE_NAME=node3
+    ports:
+      - "3309:3306"  # Keep direct access for debugging
     depends_on:
       - galera-node1
     volumes:
       - ./node3/data:/var/lib/mysql
       - ./node3/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - galera-network
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -50,5 +75,15 @@ services:
     environment:
       - PMA_ARBITRARY=1
       - UPLOAD_LIMIT=300M
+      - PMA_HOST=haproxy
+      - PMA_PORT=3306
+    depends_on:
+      - haproxy
     logging:
       driver: "none"
+    networks:
+      - galera-network
+
+networks:
+  galera-network:
+    driver: bridge
