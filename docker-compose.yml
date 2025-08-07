@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  galera-node1:
+    image: mariadb:10.5
+    container_name: galera-node1
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - CLUSTER_NAME=galera_cluster
+      - NODE_NAME=node1
+      - MYSQL_DATABASE=testdb
+    ports:
+      - "3307:3306"
+    command: --wsrep-new-cluster
+    volumes:
+      - ./node1/data:/var/lib/mysql
+      - ./node1/my.cnf:/etc/mysql/my.cnf
+
+  galera-node2:
+    image: mariadb:10.5
+    container_name: galera-node2
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - CLUSTER_NAME=galera_cluster
+      - NODE_NAME=node2
+    depends_on:
+      - galera-node1
+    volumes:
+      - ./node2/data:/var/lib/mysql
+      - ./node2/my.cnf:/etc/mysql/my.cnf
+
+  galera-node3:
+    image: mariadb:10.5
+    container_name: galera-node3
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - CLUSTER_NAME=galera_cluster
+      - NODE_NAME=node3
+    depends_on:
+      - galera-node1
+    volumes:
+      - ./node3/data:/var/lib/mysql
+      - ./node3/my.cnf:/etc/mysql/my.cnf
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "90:80"
+    environment:
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=300M
+
