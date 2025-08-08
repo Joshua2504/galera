@@ -15,6 +15,11 @@ services:
       - galera-node3
     networks:
       - galera-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   galera-node1:
     image: mariadb:10.5
@@ -32,6 +37,11 @@ services:
       - ./node1/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1G
 
   galera-node2:
     image: mariadb:10.5
@@ -49,6 +59,11 @@ services:
       - ./node2/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1G
 
   galera-node3:
     image: mariadb:10.5
@@ -66,6 +81,11 @@ services:
       - ./node3/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1G
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -83,6 +103,11 @@ services:
       driver: "none"
     networks:
       - galera-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
 networks:
   galera-network:
