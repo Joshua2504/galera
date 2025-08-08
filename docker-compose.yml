@@ -13,6 +13,7 @@ services:
       - galera-node1
       - galera-node2
       - galera-node3
+      - galera-node4
     networks:
       - galera-network
     deploy:
@@ -79,6 +80,28 @@ services:
     volumes:
       - ./node3/data:/var/lib/mysql
       - ./node3/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - galera-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1G
+
+  galera-node4:
+    image: mariadb:10.5
+    container_name: galera-node4
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - CLUSTER_NAME=galera_cluster
+      - NODE_NAME=node4
+    ports:
+      - "3310:3306"  # Direct access for debugging backup
+    depends_on:
+      - galera-node1
+    volumes:
+      - ./node4/data:/var/lib/mysql
+      - ./node4/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
     deploy:
