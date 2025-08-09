@@ -194,7 +194,7 @@ sleep 10
 echo "[INFO] HAProxy started! Stats will be available once health checks complete."
 echo "[NOTE] HAProxy stats may show nodes as DOWN initially - this is normal during startup."
 
-# Step 3: Start remaining nodes (excluding the bootstrap node)
+# Step 3: Start remaining nodes (excluding the bootstrap node) in parallel
 remaining_nodes=()
 for i in 1 2 3 4; do
     if [ "$i" != "$bootstrap_node" ]; then
@@ -202,17 +202,32 @@ for i in 1 2 3 4; do
     fi
 done
 
+echo "[INFO] Starting remaining nodes in parallel: ${remaining_nodes[*]}"
 for node in "${remaining_nodes[@]}"; do
     echo "[INFO] Starting galera-node${node}..."
     docker compose up -d "galera-node${node}"
-    
-    wait_for_container_healthy "galera-node${node}" 60
-    wait_for_mysql_ready "galera-node${node}" 60
-    
-    # Wait for node to join the cluster
-    echo "[INFO] Waiting for node${node} to join cluster..."
-    sleep 15
-    
+done
+
+# Wait for all remaining nodes to become healthy
+echo "[INFO] Waiting for all remaining nodes to become healthy..."
+for node in "${remaining_nodes[@]}"; do
+    wait_for_container_healthy "galera-node${node}" 60 &
+done
+wait  # Wait for all background health checks to complete
+
+# Wait for MySQL to be ready on all remaining nodes
+echo "[INFO] Waiting for MySQL to be ready on all remaining nodes..."
+for node in "${remaining_nodes[@]}"; do
+    wait_for_mysql_ready "galera-node${node}" 60 &
+done
+wait  # Wait for all background MySQL checks to complete
+
+# Give nodes time to join the cluster and sync
+echo "[INFO] Allowing nodes to join cluster and synchronize..."
+sleep 20
+
+# Check status of all remaining nodes
+for node in "${remaining_nodes[@]}"; do
     check_galera_status "galera-node${node}"
 done
 
