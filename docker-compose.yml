@@ -1,58 +1,49 @@
-version: '3.9'
-
 services:
   haproxy:
-    image: haproxy:2.4
+    image: ${HAPROXY_IMAGE}
     container_name: galera-haproxy
     ports:
-      - "0.0.0.0:3306:3306"  # Main MySQL port through HAProxy
-      - "0.0.0.0:8080:8080"  # HAProxy stats page
+      - "0.0.0.0:${HAPROXY_MYSQL_PORT}:3306"  # Main MySQL port through HAProxy
+      - "0.0.0.0:${HAPROXY_STATS_PORT}:8080"  # HAProxy stats page
     volumes:
       - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
-    depends_on:
-      - galera-node1
-      - galera-node2
-      - galera-node3
-      - galera-node4
     networks:
       - galera-network
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 512M
+          cpus: "${HAPROXY_CPUS}"
+          memory: ${HAPROXY_MEMORY}
 
   galera-node1:
-    image: mariadb:10.5
+    image: ${MARIADB_IMAGE}
     container_name: galera-node1
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - CLUSTER_NAME=galera_cluster
-      - NODE_NAME=node1
-      - MYSQL_DATABASE=testdb
-    ports:
-      - "3307:3306"  # Keep direct access for debugging
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
+      - NODE_NAME=${NODE1_NAME}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     command: --wsrep-new-cluster
     volumes:
       - ./node1/data:/var/lib/mysql
       - ./node1/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
     deploy:
       resources:
         limits:
-          cpus: '1.00'
-          memory: 1G
+          cpus: "${NODE_CPUS}"
+          memory: ${NODE_MEMORY}
 
   galera-node2:
-    image: mariadb:10.5
+    image: ${MARIADB_IMAGE}
     container_name: galera-node2
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - CLUSTER_NAME=galera_cluster
-      - NODE_NAME=node2
-    ports:
-      - "3308:3306"  # Keep direct access for debugging
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
+      - NODE_NAME=${NODE2_NAME}
     depends_on:
       - galera-node1
     volumes:
@@ -60,21 +51,21 @@ services:
       - ./node2/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
     deploy:
       resources:
         limits:
-          cpus: '1.00'
-          memory: 1G
+          cpus: "${NODE_CPUS}"
+          memory: ${NODE_MEMORY}
 
   galera-node3:
-    image: mariadb:10.5
+    image: ${MARIADB_IMAGE}
     container_name: galera-node3
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - CLUSTER_NAME=galera_cluster
-      - NODE_NAME=node3
-    ports:
-      - "3309:3306"  # Keep direct access for debugging
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
+      - NODE_NAME=${NODE3_NAME}
     depends_on:
       - galera-node1
     volumes:
@@ -82,21 +73,21 @@ services:
       - ./node3/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
     deploy:
       resources:
         limits:
-          cpus: '1.00'
-          memory: 1G
+          cpus: "${NODE_CPUS}"
+          memory: ${NODE_MEMORY}
 
   galera-node4:
-    image: mariadb:10.5
+    image: ${MARIADB_IMAGE}
     container_name: galera-node4
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - CLUSTER_NAME=galera_cluster
-      - NODE_NAME=node4
-    ports:
-      - "3310:3306"  # Direct access for debugging backup
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
+      - NODE_NAME=${NODE4_NAME}
     depends_on:
       - galera-node1
     volumes:
@@ -104,22 +95,24 @@ services:
       - ./node4/my.cnf:/etc/mysql/my.cnf
     networks:
       - galera-network
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
     deploy:
       resources:
         limits:
-          cpus: '1.00'
-          memory: 1G
+          cpus: "${NODE_CPUS}"
+          memory: ${NODE_MEMORY}
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: ${PHPMYADMIN_IMAGE}
     container_name: phpmyadmin
     ports:
-      - "90:80"
+      - "${PHPMYADMIN_HOST_PORT}:80"
     environment:
-      - PMA_ARBITRARY=1
-      - UPLOAD_LIMIT=300M
-      - PMA_HOST=haproxy
-      - PMA_PORT=3306
+      - PMA_ARBITRARY=${PMA_ARBITRARY}
+      - UPLOAD_LIMIT=${UPLOAD_LIMIT}
+      - PMA_HOST=${PMA_HOST}
+      - PMA_PORT=${PMA_PORT}
     depends_on:
       - haproxy
     logging:
@@ -129,8 +122,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 512M
+          cpus: "${PHPMYADMIN_CPUS}"
+          memory: ${PHPMYADMIN_MEMORY}
 
 networks:
   galera-network:
