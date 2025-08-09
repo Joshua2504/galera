@@ -187,6 +187,13 @@ docker compose up -d haproxy
 
 wait_for_container_healthy "haproxy" 30
 
+# Give HAProxy time to perform initial health checks
+echo "[INFO] Allowing HAProxy to perform initial health checks..."
+sleep 10
+
+echo "[INFO] HAProxy started! Stats will be available once health checks complete."
+echo "[NOTE] HAProxy stats may show nodes as DOWN initially - this is normal during startup."
+
 # Step 3: Start remaining nodes (excluding the bootstrap node)
 remaining_nodes=()
 for i in 1 2 3 4; do
@@ -230,4 +237,10 @@ fi
 echo "[DONE] Galera cluster startup completed!"
 echo "[INFO] Bootstrap node was: galera-node${bootstrap_node}"
 echo "[INFO] All nodes should now be running and synchronized."
+echo ""
+echo "🔗 Access Points:"
+echo "   HAProxy Stats: http://localhost:${HAPROXY_STATS_PORT:-8080}/stats"
+echo "   MySQL (via HAProxy): localhost:${HAPROXY_MYSQL_PORT:-3306}"
+echo "   phpMyAdmin: http://localhost:${PHPMYADMIN_HOST_PORT:-90}"
+echo ""
 echo "[HINT] Check cluster status with: docker compose exec galera-node${bootstrap_node} mysql -uroot -p -e \"SHOW STATUS LIKE 'wsrep%';\""
