@@ -61,6 +61,29 @@ pick_mysql_exec() {
 	return 1
 }
 
+# Enhanced cluster health check
+check_cluster_health() {
+	echo "[INFO] Checking Galera cluster status..."
+	local ready_count=0
+	local nodes=("galera-node1" "galera-node2" "galera-node3" "galera-node4")
+	
+	for node in "${nodes[@]}"; do
+		if is_running "$node"; then
+			if docker compose exec -T "$node" mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "SHOW STATUS LIKE 'wsrep_ready';" 2>/dev/null | grep -q "ON"; then
+				echo "[INFO] $node is ready and synced"
+				((ready_count++))
+			else
+				echo "[WARN] $node is running but not ready/synced"
+			fi
+		else
+			echo "[WARN] $node is not running"
+		fi
+	done
+	
+	echo "[INFO] $ready_count/4 nodes are ready and synced"
+	return $ready_count
+}
+
 if ! is_running galera-node1; then
 	echo "[INFO] galera-node1 not running -> starting bootstrap node only..."
 	docker compose up -d galera-node1
