@@ -1,17 +1,7 @@
-# Optional override: expose nodes directly ONLY if corresponding host port vars are set.
-# Docker Compose doesn't support true conditional blocks, but if a variable is empty the mapping is ignored.
-# To use: set e.g. NODE1_HOST_PORT=3307 in .env (already present) or leave blank to skip exposure.
+# Optional override: expose the database on a custom host port if set.
+# To use: set DATABASE_HOST_PORT=3307 in .env or leave blank to use default port 3306.
 
 services:
-  galera-node1:
+  mariadb:
     ports:
-      - "${NODE1_HOST_PORT:-}:3306"
-  galera-node2:
-    ports:
-      - "${NODE2_HOST_PORT:-}:3306"
-  galera-node3:
-    ports:
-      - "${NODE3_HOST_PORT:-}:3306"
-  galera-node4:
-    ports:
-      - "${NODE4_HOST_PORT:-}:3306"
+      - "${DATABASE_HOST_PORT:-}:3306"
