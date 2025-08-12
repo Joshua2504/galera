@@ -1,107 +1,24 @@
 services:
-  haproxy:
-    image: ${HAPROXY_IMAGE}
-    container_name: galera-haproxy
+  mariadb:
+    image: ${MARIADB_IMAGE}
+    container_name: mariadb
     ports:
-      - "0.0.0.0:${HAPROXY_MYSQL_PORT}:3306"  # Main MySQL port through HAProxy
-      - "0.0.0.0:${HAPROXY_STATS_PORT}:8080"  # HAProxy stats page
-    volumes:
-      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
-    networks:
-      - galera-network
-    deploy:
-      resources:
-        limits:
-          cpus: "${HAPROXY_CPUS}"
-          memory: ${HAPROXY_MEMORY}
-
-  galera-node1:
-    image: ${MARIADB_IMAGE}
-    container_name: galera-node1
+      - "0.0.0.0:3306:3306"  # Direct MySQL port
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
-      - NODE_NAME=${NODE1_NAME}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
-    command: --wsrep-new-cluster
     volumes:
-      - ./node1/data:/var/lib/mysql
-      - ./node1/my.cnf:/etc/mysql/my.cnf
+      - ./mariadb/data:/var/lib/mysql
+      - ./mariadb/my.cnf:/etc/mysql/my.cnf
     networks:
-      - galera-network
+      - mariadb-network
     stop_signal: SIGTERM
     stop_grace_period: 30s
     deploy:
       resources:
         limits:
-          cpus: "${NODE_CPUS}"
-          memory: ${NODE_MEMORY}
-
-  galera-node2:
-    image: ${MARIADB_IMAGE}
-    container_name: galera-node2
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
-      - NODE_NAME=${NODE2_NAME}
-    depends_on:
-      - galera-node1
-    volumes:
-      - ./node2/data:/var/lib/mysql
-      - ./node2/my.cnf:/etc/mysql/my.cnf
-    networks:
-      - galera-network
-    stop_signal: SIGTERM
-    stop_grace_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "${NODE_CPUS}"
-          memory: ${NODE_MEMORY}
-
-  galera-node3:
-    image: ${MARIADB_IMAGE}
-    container_name: galera-node3
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
-      - NODE_NAME=${NODE3_NAME}
-    depends_on:
-      - galera-node1
-    volumes:
-      - ./node3/data:/var/lib/mysql
-      - ./node3/my.cnf:/etc/mysql/my.cnf
-    networks:
-      - galera-network
-    stop_signal: SIGTERM
-    stop_grace_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "${NODE_CPUS}"
-          memory: ${NODE_MEMORY}
-
-  galera-node4:
-    image: ${MARIADB_IMAGE}
-    container_name: galera-node4
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - CLUSTER_NAME=${GALERA_CLUSTER_NAME}
-      - NODE_NAME=${NODE4_NAME}
-    depends_on:
-      - galera-node1
-    volumes:
-      - ./node4/data:/var/lib/mysql
-      - ./node4/my.cnf:/etc/mysql/my.cnf
-    networks:
-      - galera-network
-    stop_signal: SIGTERM
-    stop_grace_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "${NODE_CPUS}"
-          memory: ${NODE_MEMORY}
+          cpus: "${DATABASE_CPUS}"
+          memory: ${DATABASE_MEMORY}
 
   phpmyadmin:
     image: ${PHPMYADMIN_IMAGE}
@@ -113,15 +30,11 @@ services:
     volumes:
       - ./phpmyadmin-config.php:/etc/phpmyadmin/config.inc.php:ro
     depends_on:
-      - galera-node1
-      - galera-node2
-      - galera-node3
-      - galera-node4
-      - haproxy
+      - mariadb
     logging:
       driver: "none"
     networks:
-      - galera-network
+      - mariadb-network
     deploy:
       resources:
         limits:
@@ -129,5 +42,5 @@ services:
           memory: ${PHPMYADMIN_MEMORY}
 
 networks:
-  galera-network:
+  mariadb-network:
     driver: bridge
